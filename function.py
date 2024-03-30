@@ -11,7 +11,7 @@ def initialize_driver():
     driver = webdriver.Chrome() 
     return driver
 
-def screenshot(URL):
+def screenshot_with_highlight(URL):
     options = webdriver.ChromeOptions()
     options.headless = True
     # options.add_argument("--headless=false")
@@ -19,19 +19,26 @@ def screenshot(URL):
     options.add_argument("--disable-gpu")
     options.add_argument("--no-sandbox")
     # TODO: The demo person need to update the binary_location and user-data-dir
-    options.binary_location = r"C:\Users\vince\AppData\Local\Google\Chrome SxS\Application\chrome.exe"
-    # Maybe specify the profile directory "Profile 1"
-    options.add_argument(r"user-data-dir=C:\Users\vince\AppData\Local\Google\Chrome SxS\User Data")
+    options.binary_location = r"C:/Users/vince/AppData/Local/Google/Chrome SxS/Application/chrome.exe"
+    # Maybe specify the profile directory "/Profile 1"
+    options.add_argument(r"user-data-dir=C:/Users/vince/AppData/Local/Google/Chrome SxS/User Data")
     options.add_argument("--profile-directory=Default");
 
     driver = webdriver.Chrome(options=options)
     driver.get(URL)
     driver.maximize_window()
 
+    # highlight_script = """
+    # document.querySelectorAll('a, button, input[type="submit"], input[type="button"], [role="button"]').forEach(function(element) {
+    #     element.style.border = '2px solid red';
+    # });
+    # """
+
+    # driver.execute_script(highlight_script) 
+
     os.makedirs("screenshots", exist_ok=True)
     filename = f"screenshots/screenshot_{str(uuid.uuid4())}.png"
     driver.save_screenshot(filename)
-    driver.quit()
 
 def click_element(driver, xpath):
     element = WebDriverWait(driver, 10).until(
@@ -53,4 +60,5 @@ def press_enter(driver):
     actions.send_keys(Keys.ENTER)
     actions.perform()
 
-screenshot("https://amazon.ca")
+if __name__ == "__main__":
+    screenshot_with_highlight( "http://amazon.ca")
