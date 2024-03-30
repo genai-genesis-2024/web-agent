@@ -50,7 +50,7 @@ def screenshot_with_highlight(URL):
 # this is gor uplpoading to storage 
 def upload_to_storage(filename):
     client = storage.Client()
-    bucket_name = "genai-genesis"
+    bucket_name = "bucket-name"
     bucket = client.bucket(bucket_name)
 
     blob_name = os.path.basename(filename)
@@ -65,7 +65,7 @@ def upload_to_storage(filename):
 # test this , 
 def get_latest_screenshot():
     client = storage.Client()
-    bucket_name = "genai-genesis"
+    bucket_name = "bucket-name"
     bucket = client.bucket(bucket_name)
 
     blobs = list(bucket.list_blobs(prefix="screenshot_"))
