@@ -3,8 +3,5 @@ pyaudio
 google-cloud-speech
 vertexai
 uuid
-os
-re
-queue
 google-cloud-aiplatform>=1.38
 python-dotenv
