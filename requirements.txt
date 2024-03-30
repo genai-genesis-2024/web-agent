@@ -6,3 +6,5 @@ re
 queue
 sys
 google-cloud-speech
+python-dotenv 
+vertexai
