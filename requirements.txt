@@ -1,10 +1,8 @@
-os 
 selenium 
-uuid
 pyaudio
+google-cloud-speech
+vertexai
+uuid
+os
 re
 queue
-sys
-google-cloud-speech
-python-dotenv 
-vertexai
