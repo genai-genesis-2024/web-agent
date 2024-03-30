@@ -1,0 +1,8 @@
+selenium 
+pyaudio
+google-cloud-speech
+vertexai
+uuid
+os
+re
+queue
