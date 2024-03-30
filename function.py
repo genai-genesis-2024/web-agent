@@ -29,13 +29,14 @@ def screenshot_with_highlight(URL):
     driver.get(URL)
     driver.maximize_window()
 
-    # highlight_script = """
-    # document.querySelectorAll('a, button, input[type="submit"], input[type="button"], [role="button"]').forEach(function(element) {
-    #     element.style.border = '2px solid red';
-    # });
-    # """
+    WebDriverWait(driver, 10).until(EC.visibility_of_element_located((By.TAG_NAME, "body")))
 
-    # driver.execute_script(highlight_script) 
+    highlight_script = """
+    document.querySelectorAll('a, button, input, [role="link"], [role="button"]').forEach(function(element) {
+        element.style.border = '2px solid red';
+    });
+    """
+    driver.execute_script(highlight_script) 
 
     os.makedirs("screenshots", exist_ok=True)
     filename = f"screenshots/screenshot_{str(uuid.uuid4())}.png"
