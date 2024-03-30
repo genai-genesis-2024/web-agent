@@ -20,6 +20,7 @@ def screenshot(URL):
     options.add_argument("--no-sandbox")
     # TODO: The demo person need to update the binary_location and user-data-dir
     options.binary_location = r"C:\Users\vince\AppData\Local\Google\Chrome SxS\Application\chrome.exe"
+    # Maybe specify the profile directory "Profile 1"
     options.add_argument(r"user-data-dir=C:\Users\vince\AppData\Local\Google\Chrome SxS\User Data")
     options.add_argument("--profile-directory=Default");
 
