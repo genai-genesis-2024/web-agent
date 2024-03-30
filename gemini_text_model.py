@@ -5,7 +5,7 @@ from vertexai.generative_models import GenerativeModel
 import re
 import json
 from pydantic import BaseModel, ValidationError
-from typing import List, Dict
+from typing import List
 
 load_dotenv()
 
@@ -13,7 +13,7 @@ load_dotenv()
 GOOGLE_PROJECT_ID = os.environ.get("GOOGLE_PROJECT_ID")
 GOOGLE_LOCATION = os.environ.get("GOOGLE_LOCATION")
 
-class GoogleVertexAIModel:
+class GeminiTextModel:
     def __init__(self, project_id: str = GOOGLE_PROJECT_ID, location: str = GOOGLE_LOCATION, model: str = "gemini-1.0-pro"):
         vertexai.init(project=project_id, location=location)
         model_instance = GenerativeModel(model)
@@ -25,7 +25,7 @@ class GoogleVertexAIModel:
         return response.text
 
     def json_call(self, prompt: str, sys_msg: str, model_class, model_instance) -> str:
-        model_json_format = GoogleVertexAIModel.model_to_json(model_instance)
+        model_json_format = GeminiTextModel.model_to_json(model_instance)
         prompt_template = f"""System Instruction:
 {sys_msg}
 
@@ -40,10 +40,10 @@ User Instruction:
         text_response = response.text
         print("text_response:")
         print(text_response)
-        json_response = GoogleVertexAIModel.extract_json(text_response)
+        json_response = GeminiTextModel.extract_json(text_response)
         print("json_response:")
         print(json_response)
-        validated_data, validation_errors = GoogleVertexAIModel.validate_json_with_model(model_class, json_response)
+        validated_data, validation_errors = GeminiTextModel.validate_json_with_model(model_class, json_response)
         if len(validation_errors) == 0:
             return validated_data
         else:
@@ -78,7 +78,7 @@ User Instruction:
                 json_objects.append(json_obj)
             except json.JSONDecodeError:
                 # Extend the search for nested structures
-                extended_json_str = GoogleVertexAIModel.extend_search(text_response, match.span())
+                extended_json_str = GeminiTextModel.extend_search(text_response, match.span())
                 try:
                     json_obj = json.loads(extended_json_str)
                     json_objects.append(json_obj)
@@ -149,7 +149,7 @@ User Instruction:
         return validated_data, validation_errors
 
 if __name__ == "__main__":
-    gemini_model_instance = GoogleVertexAIModel(project_id=GOOGLE_PROJECT_ID, location=GOOGLE_LOCATION)
+    gemini_model_instance = GeminiTextModel(project_id=GOOGLE_PROJECT_ID, location=GOOGLE_LOCATION)
     # Normal Call Test
     prompt = "What is the capital of France?"
     response = gemini_model_instance.call(prompt=prompt)
