@@ -1,8 +1,4 @@
-os 
-selenium 
-uuid
-google
+selenium
+google.cloud
 pyaudio
-re
-queue
-sys
+vertexai
