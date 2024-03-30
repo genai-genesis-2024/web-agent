@@ -1,4 +1,7 @@
 
+# code from:
+# https://cloud.google.com/speech-to-text/docs/transcribe-streaming-audio?_gl=1*3m4ohq*_up*MQ..&gclid=Cj0KCQjw8J6wBhDXARIsAPo7QA_F8euqgZnju9joV5k9OUT9cKogYZd-aQzcKdujGSYm8Vz4eSju0bUaAmFUEALw_wcB&gclsrc=aw.ds#perform_streaming_speech_recognition_on_an_audio_stream
+
 import queue
 import re
 import sys
