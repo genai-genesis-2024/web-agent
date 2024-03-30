@@ -41,7 +41,7 @@ class LlmLogger:
                 self.save_experiments()
                 break
         else:
-            print("Experiment ID not found")
+            print("experiment ID not found")
 
     def display_experiments_table(self):
         table = PrettyTable()
