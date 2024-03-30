@@ -1,4 +1,15 @@
+<<<<<<< HEAD
 selenium
 google.cloud
 pyaudio
 vertexai
+=======
+os 
+selenium 
+uuid
+pyaudio
+re
+queue
+sys
+google-cloud-speech
+>>>>>>> 4ecbb8417f6c2647ee4a25e707ca0f3d78ec7733
