@@ -1,5 +1,4 @@
 selenium 
 pyaudio
-sys
 google-cloud-speech
 vertexai
