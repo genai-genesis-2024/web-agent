@@ -7,12 +7,37 @@ from selenium.webdriver.common.keys import Keys
 import uuid
 import os
 from google.cloud import storage
+from dotenv import load_dotenv
+import gemini_vision
+
+load_dotenv()
+
+GOOGLE_PROJECT_ID = os.environ.get("GOOGLE_PROJECT_ID")
+GOOGLE_LOCATION = os.environ.get("GOOGLE_LOCATION")
 
 def initialize_driver():
     driver = webdriver.Chrome() 
     return driver
 
-def screenshot_with_highlight(URL):
+def click_element_by_LLM_link_text(driver, text):
+    try:
+        # Using XPath to find an element with a specific LLM-link-text attribute
+        element = WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.XPATH, f"//*[@LLM-link-text='{text}']"))
+        )
+        element.click()
+    except Exception as e:
+        print(f"Error clicking on element with text '{text}': {e}")
+
+def gemini_vision_query_with_screenshot(screenshot_uri):
+    queries = [
+        {'type': 'image', 'content': screenshot_uri},
+        {'type': 'text', 'content': 'Describe what actions can be performed on this page.'},
+    ]
+    response = gemini_vision.call_gemini_vision(project_id=GOOGLE_PROJECT_ID, location=GOOGLE_LOCATION, queries=queries)
+    print(response)
+
+def screenshot_with_highlights_and_labels(URL):
     options = webdriver.ChromeOptions()
     options.headless = True
     # options.add_argument("--headless=false")
@@ -20,9 +45,9 @@ def screenshot_with_highlight(URL):
     options.add_argument("--disable-gpu")
     options.add_argument("--no-sandbox")
     # TODO: The demo person need to update the binary_location and user-data-dir
-    #options.binary_location = r"C:/Users/vince/AppData/Local/Google/Chrome SxS/Application/chrome.exe"
+    options.binary_location = r"C:/Users/vince/AppData/Local/Google/Chrome SxS/Application/chrome.exe"
     # Maybe specify the profile directory "/Profile 1"
-    #options.add_argument(r"user-data-dir=C:/Users/vince/AppData/Local/Google/Chrome SxS/User Data")
+    options.add_argument(r"user-data-dir=C:/Users/vince/AppData/Local/Google/Chrome SxS/User Data")
     options.add_argument("--profile-directory=Default");
 
     driver = webdriver.Chrome(options=options)
@@ -31,22 +56,37 @@ def screenshot_with_highlight(URL):
 
     WebDriverWait(driver, 10).until(EC.visibility_of_element_located((By.TAG_NAME, "body")))
 
-    highlight_script = """
+    highlight_and_label_script = """
     document.querySelectorAll('a, button, input, [role="link"], [role="button"]').forEach(function(element) {
         element.style.border = '2px solid red';
+        let linkText = element.textContent.replace(/\\s+/g, ' ').trim();
+        element.setAttribute('LLM-link-text', linkText);
     });
     """
-    driver.execute_script(highlight_script) 
+    driver.execute_script(highlight_and_label_script) 
+
+    # Test
+    verify_highlights_and_labels(driver)
 
     os.makedirs("screenshots", exist_ok=True)
     filename = f"screenshots/screenshot_{str(uuid.uuid4())}.png"
 
     driver.save_screenshot(filename)
 
-    upload_to_storage(filename)
+    # upload_to_storage(filename)
     
 
     ## ToDO: upload each of these screenshots to Google cloud storage 
+
+def verify_highlights_and_labels(driver):
+    modified_elements = driver.find_elements(By.CSS_SELECTOR, 'a, button, input, [role="link"], [role="button"]')
+    
+    for element in modified_elements:
+        llm_link_text = element.get_attribute('LLM-link-text')
+        border_style = element.value_of_css_property('border')
+        if llm_link_text:
+            print(f"Element text: '{llm_link_text}', Border style: '{border_style}'")
+
 
 # this is gor uplpoading to storage 
 def upload_to_storage(filename):
@@ -100,4 +140,4 @@ def press_enter(driver):
     actions.perform()
 
 if __name__ == "__main__":
-    screenshot_with_highlight( "http://amazon.ca")
+    screenshot_with_highlights_and_labels( "http://amazon.ca")
