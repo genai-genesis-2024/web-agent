@@ -1,8 +1,8 @@
 os 
 selenium 
 uuid
-google
 pyaudio
 re
 queue
 sys
+google-cloud-speech
