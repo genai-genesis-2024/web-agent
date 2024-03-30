@@ -12,7 +12,6 @@ load_dotenv()
 # NOTE: If you are running the code locally, authenticate with gcloud cli before running the code
 GOOGLE_PROJECT_ID = os.environ.get("GOOGLE_PROJECT_ID")
 GOOGLE_LOCATION = os.environ.get("GOOGLE_LOCATION")
-vertexai.init(project=GOOGLE_PROJECT_ID, location=GOOGLE_LOCATION)
 
 class GoogleVertexAIModel:
     def __init__(self, project_id: str = GOOGLE_PROJECT_ID, location: str = GOOGLE_LOCATION, model: str = "gemini-1.0-pro"):
