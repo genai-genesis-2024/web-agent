@@ -9,6 +9,15 @@ def initialize_driver():
     driver = webdriver.Chrome() 
     return driver
 
+def screenshot(URL):
+    options = webdriver.ChromeOptions()
+    options.headless = True
+    driver = webdriver.Chrome(options=options)
+    driver.get(URL)
+    driver.set_window_size(1200, 1200)
+    driver.save_screenshot("screenshots/screenshot.jpg")
+    driver.quit()
+
 def click_element(driver, xpath):
     element = WebDriverWait(driver, 10).until(
         EC.presence_of_element_located((By.XPATH, xpath))
