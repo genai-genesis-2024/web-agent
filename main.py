@@ -212,6 +212,7 @@ def agent_text_to_speech(text):  # this function will be called at the beginning
     speak_text(text)
     user_intent_unclean, _ = start_streaming()
     user_intent = delete_last_word(user_intent_unclean)
+    user_intent = ' '.join([word for word in user_intent.split(' ') if word != 'quit'])
     return user_intent
 
 def find_most_similar(target, strings):
