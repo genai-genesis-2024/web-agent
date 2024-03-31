@@ -64,7 +64,25 @@ class GoogleVertexAIModel:
         return model_instance.model_dump_json()
 
     @staticmethod
+    def extract_json_content(s):
+        # Regular expression to match ```json at the start and ``` at the end
+        pattern = r'^```json(.*)```$'
+        
+        # Search for the pattern in the string
+        match = re.search(pattern, s, re.DOTALL)
+        
+        # If a match is found, return the content without the markers
+        if match:
+            return match.group(1).strip()
+        else:
+            # If no match is found, return the original string
+            return s
+
+    @staticmethod
     def extract_json(text_response):
+        # Check for backticks
+        text_response = GoogleVertexAIModel.extract_json_content(text_response)
+
         pattern = r'\{[^{}]*\}'
         matches = re.finditer(pattern, text_response)
         json_objects = []
