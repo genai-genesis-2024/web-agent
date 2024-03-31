@@ -161,7 +161,6 @@ def determine_next_action(queries, user_intent, action_log):
     - If the user wants to search for something, identify the search input field and return the appropriate 'llm_link_text', 'type' action and the 'data_value', the data_value is what you want to search make it concise . 'type' actions ALWAYS return a data_value. 'type' actions are ALWAYS followed by the 'enter' action
     - If the user wants to navigate to a specific section or product, identify the relevant link or button and return the 'llm_link_text' and 'click' action.
     - If scrolling is required to view more content, return the 'scroll' action.
-    - If 'enter' is required to select button, return the 'enter' action.
     - If the user's intent is unclear or cannot be fulfilled with the available queries, return the 'listen' action to get more instructions from the user.
     - If the user's intent is fulfilled, return the 'stop' action to terminate the session. DO NOT return the 'stop' action if you haven't taken any actions, and do not return 'stop' action if your last action doesn't match the expected ending action of the user's intent (for example, search for book should end by typing 'books' into search bar and clicking on search or clicking on book category on Amazon).
     - DO NOT associate the word 'quit' from the user's intent with the action 'stop'.
@@ -177,7 +176,7 @@ def determine_next_action(queries, user_intent, action_log):
     Determine the next action based on the user intent and the available queries. Return the action type (click, scroll, type, enter, listen, stop) and the corresponding 'llm_link_text' value.
     For example: if the next step is to search for a book, then look for texts that are similar to search and extract the 'llm_link_text' of the search input field.
     Notice that in the queries, there might be an entry like 'id': 'twotabsearchtextbox', 'type': 'text', 'placeholder': 'Search Amazon.ca', 'llm_link_text': 'ID:twotabsearchtextbox'.
-    In this case, you would return 'ID:twotabsearchtextbox' as the 'llm_link_text' and 'type' as the 'action_type' and 'book' as the data_value. In case the 'llm_link_text' is very long, always return the full 'llm_link_text'.
+    In this case, you would return 'ID:twotabsearchtextbox' as the 'llm_link_text' and 'type' as the 'action_type' and 'book' as the data_value. In case the 'llm_link_text' is very long, always return the full length of the value of key'llm_link_text'.
     
     Past Action:
     The following are the past actions you have taken to fulfill the user's intent. Reference your past actions to prevent repeating the same action.
@@ -232,7 +231,7 @@ def main(driver, initial_url, user_intent):
         try:
             queries = function.screenshot_with_highlights_and_labels(driver)
             print("*"*20)
-            print(queries)
+            # print(queries)
             print("Screenshot taken with highlights and labels.")
             print("*"*20)
 
@@ -243,7 +242,7 @@ def main(driver, initial_url, user_intent):
             print(action_type)
             print(llm_link_text)
 
-            action_type = find_most_similar(action_type, ["click", "scroll", "type", "enter", "listen", "stop"])
+            action_type = find_most_similar(action_type, ["click", "scroll", "type", "listen", "stop"])
             # MATCH llm_link_text with available list of link text
 
             if action_type == "click":
@@ -257,12 +256,13 @@ def main(driver, initial_url, user_intent):
                 if len(action_info) == 3:
                     data_value = action_info[2]
                     function.type_text_with_LLM_link_text(driver, llm_link_text, data_value)
+                    function.press_enter(driver)
                     print(f"Typed '{data_value}' into element: {llm_link_text}")
                 else:
                     print("Data value not provided for typing action.")
-            elif action_type == "enter":
-                function.press_enter(driver)
-                print("Pressed Enter")
+            # elif action_type == "enter":
+            #     function.press_enter(driver)
+            #     print("Pressed Enter")
             elif action_type == "listen":
                 print("No valid action determined. Waiting for user input.")
                 user_intent = agent_text_to_speech("Can you clarify your request by adding more details, and when you finish, say quit")
