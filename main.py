@@ -163,7 +163,8 @@ def determine_next_action(queries, user_intent, action_log):
     - If scrolling is required to view more content, return the 'scroll' action.
     - If 'enter' is required to select button, return the 'enter' action.
     - If the user's intent is unclear or cannot be fulfilled with the available queries, return the 'listen' action to get more instructions from the user.
-    - If the user's intent is fulfilled, return the 'stop' action to terminate the session.
+    - If the user's intent is fulfilled, return the 'stop' action to terminate the session. DO NOT return the 'stop' action if you haven't taken any actions, and do not return 'stop' action if your last action doesn't match the expected ending action of the user's intent (for example, search for book should end by typing 'books' into search bar and clicking on search or clicking on book category on Amazon).
+    - DO NOT associate the word 'quit' from the user's intent with the action 'stop'.
     """
 
     newline = "\n"
@@ -208,9 +209,8 @@ def determine_next_action(queries, user_intent, action_log):
 
 def agent_text_to_speech(text):  # this function will be called at the beginning of all request, first interaction of agent and user
     speak_text(text)
-    #user_intent_unclean = start_streaming()
-    #user_intent = delete_last_word(user_intent_unclean)
-    user_intent = start_streaming()
+    user_intent_unclean = start_streaming()
+    user_intent = delete_last_word(user_intent_unclean)
     return user_intent
 
 def find_most_similar(target, strings):
