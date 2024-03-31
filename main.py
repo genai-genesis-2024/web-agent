@@ -23,6 +23,7 @@ def main(driver, initial_url):
         #     break
         function.type_text_with_LLM_link_text(driver, "ID:twotabsearchtextbox", "book")
         function.press_enter(driver)
+        # TODO: Everytime a new page is loaded, we need to re-capture the screenshot
         queries = function.screenshot_with_highlights_and_labels(driver)
         function.scroll_page(driver, 1000)
         time.sleep(5)
