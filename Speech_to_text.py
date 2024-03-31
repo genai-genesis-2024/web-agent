@@ -176,7 +176,7 @@ def listen_print_loop(responses: object) -> str:
 
     return transcript
 
-# def listen_print_loop(responses: object) -> str:
+# def listen_print_loop(responses):
 #     """Iterates through server responses and concatenates them into a single string.
 #
 #     Args:
@@ -203,19 +203,18 @@ def listen_print_loop(responses: object) -> str:
 #             if re.search(r"\b(exit|quit)\b", transcript, re.I):
 #                 break  # If you find an exit command, break from the loop
 #
-#     return full_transcription.strip()  # Return the full transcription, stripped of leading/trailing whitespace
+#         return full_transcription.strip()
 
 
 
-def main() -> None:
+def start_streaming():
     """Transcribe speech from audio file."""
     # See http://g.co/cloud/speech/docs/languages
     # for a list of supported languages.
-    language_code = "en-US"  # a BCP-47 language tag
+    language_code = "en-US"
 
     # Set the path to the service account key file, can change it
-    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = \
-        "key.json"
+    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "key.json"
 
     client = speech.SpeechClient()
     config = speech.RecognitionConfig(
@@ -238,11 +237,11 @@ def main() -> None:
         responses = client.streaming_recognize(streaming_config, requests)
 
         # Now, put the transcription responses to use.
-        listen_print_loop(responses)
+        return listen_print_loop(responses)
         # transcribed_text = listen_print_loop(responses)
         # print("Full Transcription:", transcribed_text)
 
 
-
 if __name__ == "__main__":
-    main()
+    transcribed_text = start_streaming()
+    print(transcribed_text)
