@@ -38,4 +38,6 @@ if __name__ == "__main__":
     try:
         main(driver, "http://amazon.ca")
     finally:
+        # TODO: Maybe add a flag to when to quit the driver?
+        time.sleep(20)
         driver.quit()
