@@ -4,8 +4,6 @@ from selenium.webdriver.support.ui import WebDriverWait
 import time
 from selenium.common.exceptions import NoSuchElementException, TimeoutException
 
-#import gemini_vision
-
 import os
 from dotenv import load_dotenv
 import vertexai
@@ -14,14 +12,18 @@ import re
 import json
 from pydantic import BaseModel, ValidationError
 from typing import List, Dict
+from Speech_to_text import start_streaming, delete_last_word
+from text_to_speech import speak_text
 
 load_dotenv()
 
 GOOGLE_PROJECT_ID = os.environ.get("GOOGLE_PROJECT_ID")
 GOOGLE_LOCATION = os.environ.get("GOOGLE_LOCATION")
 
+
 class GoogleVertexAIModel:
-    def __init__(self, project_id: str = GOOGLE_PROJECT_ID, location: str = GOOGLE_LOCATION, model: str = "gemini-1.0-pro"):
+    def __init__(self, project_id: str = GOOGLE_PROJECT_ID, location: str = GOOGLE_LOCATION,
+                 model: str = "gemini-1.0-pro"):
         vertexai.init(project=project_id, location=location)
         model_instance = GenerativeModel(model)
         self.client = model_instance.start_chat()
@@ -92,7 +94,7 @@ class GoogleVertexAIModel:
             elif text[i] == '}':
                 nest_count -= 1
             if nest_count == 0:
-                return text[start:i+1]
+                return text[start:i + 1]
         return text[start:end]
 
     @staticmethod
@@ -125,10 +127,12 @@ class GoogleVertexAIModel:
             raise ValueError("Invalid JSON data type. Expected dict or list.")
         return validated_data, validation_errors
 
+
 def generate_text(prompt: str) -> str:
     gemini_model_instance = GoogleVertexAIModel(project_id=GOOGLE_PROJECT_ID, location=GOOGLE_LOCATION)
     response = gemini_model_instance.call(prompt=prompt)
     return response
+
 
 def determine_next_action(queries, user_intent):
     sys_msg = """
@@ -171,9 +175,25 @@ def determine_next_action(queries, user_intent):
                 result += (data_value,)
 
             return result
+
     except json.JSONDecodeError:
         print("Error: Invalid JSON response from LLM")
         return None, None
+
+
+def first_interaction():  # this function will be called at the beginning of all request, first interaction of agent and user
+    speak_text("How can I help you? Start saying your request and when you finish, say quit")
+    user_intent_unclean = start_streaming()
+    user_intent = delete_last_word(user_intent_unclean)
+    return user_intent
+
+
+def failed_announcement():  # call this function whenever the agent wants to announce a failure
+    speak_text("Action failed")
+
+
+def complete_announcement(): # call this function whenever the agent wants to announce a complete task
+    speak_text("Action completed")
 
 
 def main(driver, initial_url, user_intent):
@@ -205,7 +225,7 @@ def main(driver, initial_url, user_intent):
             else:
                 print("Data value not provided for typing action.")
         elif action_type == "enter":
-            function.press_enter(driver)         
+            function.press_enter(driver)
             print("Pressed Enter")
         else:
             print("No valid action determined. Stopping the loop.")
@@ -213,12 +233,11 @@ def main(driver, initial_url, user_intent):
     except (NoSuchElementException, TimeoutException) as e:
         print(f"Error occurred: {e}. Stopping the loop.")
 
+
 if __name__ == "__main__":
     driver = function.initialize_driver()
-    initial_url = "https://www.amazon.com"
-    user_intent = "Search for a book on Amazon"
-    main(driver, initial_url, user_intent)  
-
+    # user_intent = "Search for a book on Amazon"
+    user_intent = first_interaction()
     try:
         main(driver, "http://amazon.ca", user_intent)
     finally:

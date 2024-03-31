@@ -109,7 +109,7 @@ def screenshot_with_highlights_and_labels(driver):
     """
     driver.execute_script(highlight_and_label_script) 
     queries = prepare_element_data_for_gemini(driver)
-    print(queries)
+    # print(queries)
     os.makedirs("screenshots", exist_ok=True)
     filename = f"screenshots/screenshot_{str(uuid.uuid4())}.png"
     driver.save_screenshot(filename)
