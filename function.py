@@ -197,4 +197,9 @@ def press_enter(driver):
     actions.perform()
 
 
-
+if __name__ == "__main__":
+    driver = initialize_driver()
+    navigate_to_URL(driver, "https://www.amazon.ca")
+    queries = screenshot_with_highlights_and_labels(driver)
+    click_element_with_LLM_link_text(driver, "Text:Greenwaterfarm Concentrated Chlorella Powder for Feeding Crustaceans - Daphnia, Moina, Rotifer, Fairy Shrimp, and Other...Greenwaterfarm Conce…")
+    driver.quit()

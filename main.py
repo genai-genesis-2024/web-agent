@@ -176,7 +176,7 @@ def determine_next_action(queries, user_intent, action_log):
     Determine the next action based on the user intent and the available queries. Return the action type (click, scroll, type, enter, listen, stop) and the corresponding 'llm_link_text' value.
     For example: if the next step is to search for a book, then look for texts that are similar to search and extract the 'llm_link_text' of the search input field.
     Notice that in the queries, there might be an entry like 'id': 'twotabsearchtextbox', 'type': 'text', 'placeholder': 'Search Amazon.ca', 'llm_link_text': 'ID:twotabsearchtextbox'.
-    In this case, you would return 'ID:twotabsearchtextbox' as the 'llm_link_text' and 'type' as the 'action_type' and 'book' as the data_value.
+    In this case, you would return 'ID:twotabsearchtextbox' as the 'llm_link_text' and 'type' as the 'action_type' and 'book' as the data_value. In case the 'llm_link_text' is very long, always return the full 'llm_link_text'.
     
     Past Action:
     The following are the past actions you have taken to fulfill the user's intent. Reference your past actions to prevent repeating the same action.
@@ -212,14 +212,6 @@ def agent_text_to_speech(text):  # this function will be called at the beginning
     user_intent = delete_last_word(user_intent_unclean)
     return user_intent
 
-
-def failed_announcement():  # call this function whenever the agent wants to announce a failure
-    speak_text("Action failed")
-
-
-def complete_announcement(): # call this function whenever the agent wants to announce a complete task
-    speak_text("Action completed")
-
 def find_most_similar(target, strings):
         highest_score = 0
         most_similar = None
@@ -238,7 +230,10 @@ def main(driver, initial_url, user_intent):
     while True:
         try:
             queries = function.screenshot_with_highlights_and_labels(driver)
+            print("*"*20)
+            print(queries)
             print("Screenshot taken with highlights and labels.")
+            print("*"*20)
 
             # The function might return two or three values depending on the presence of 'data_value'
             action_info = determine_next_action(queries, user_intent, action_log)
@@ -269,8 +264,8 @@ def main(driver, initial_url, user_intent):
                 print("Pressed Enter")
             elif action_type == "listen":
                 print("No valid action determined. Waiting for user input.")
-                user_input = start_streaming()
-                print(f"User input: {user_input}")
+                user_intent = agent_text_to_speech("Can you clarify your request by adding more details, and when you finish, say quit")
+                print(f"New User Intent: {user_intent}")
             elif action_type == "stop":
                 print("User's intent fulfilled. Terminating the session.")
                 break
@@ -292,3 +287,4 @@ if __name__ == "__main__":
         main(driver, "http://amazon.ca", user_intent)
     finally:
         driver.quit()
+        speak_text("Action Completed. Goodbye!")
