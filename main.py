@@ -2,7 +2,7 @@ import function
 from selenium.common.exceptions import TimeoutException, NoSuchElementException
 from selenium.webdriver.support.ui import WebDriverWait
 import time
-#import gemini_vision
+# import gemini_vision
 
 import os
 from dotenv import load_dotenv
@@ -12,14 +12,18 @@ import re
 import json
 from pydantic import BaseModel, ValidationError
 from typing import List, Dict
+from Speech_to_text import start_streaming, delete_last_word
+from text_to_speech import speak_text
 
 load_dotenv()
 
 GOOGLE_PROJECT_ID = os.environ.get("GOOGLE_PROJECT_ID")
 GOOGLE_LOCATION = os.environ.get("GOOGLE_LOCATION")
 
+
 class GoogleVertexAIModel:
-    def __init__(self, project_id: str = GOOGLE_PROJECT_ID, location: str = GOOGLE_LOCATION, model: str = "gemini-1.0-pro"):
+    def __init__(self, project_id: str = GOOGLE_PROJECT_ID, location: str = GOOGLE_LOCATION,
+                 model: str = "gemini-1.0-pro"):
         vertexai.init(project=project_id, location=location)
         model_instance = GenerativeModel(model)
         self.client = model_instance.start_chat()
@@ -90,7 +94,7 @@ class GoogleVertexAIModel:
             elif text[i] == '}':
                 nest_count -= 1
             if nest_count == 0:
-                return text[start:i+1]
+                return text[start:i + 1]
         return text[start:end]
 
     @staticmethod
@@ -123,10 +127,12 @@ class GoogleVertexAIModel:
             raise ValueError("Invalid JSON data type. Expected dict or list.")
         return validated_data, validation_errors
 
+
 def generate_text(prompt: str) -> str:
     gemini_model_instance = GoogleVertexAIModel(project_id=GOOGLE_PROJECT_ID, location=GOOGLE_LOCATION)
     response = gemini_model_instance.call(prompt=prompt)
     return response
+
 
 def determine_next_action(queries, user_intent):
     input_text = f"User Intent: {user_intent}\nQueries: {queries}\n\nDetermine the next action based on the user intent and the available queries. Return the action type (click, scroll, type, enter) and the corresponding 'llm_link_text' value. For example: if the next steps is to search for a book, then look the texts that ae similar to search and then get extract the llm_link_text of the search , notice that is in here 'id': 'twotabsearchtextbox', 'type': 'text', 'placeholder': 'Search Amazon.ca', 'llm_link_text': 'ID:twotabsearchtextbox' so you would return twotabsearchtextbox as the llm_link_text and type in action_type"
@@ -138,11 +144,27 @@ def determine_next_action(queries, user_intent):
         json_response = json.loads(response)
         action_type = json_response.get("action_type")
         llm_link_text = json_response.get("llm_link_text")
-        print(action_type,llm_link_text)
+        print(action_type, llm_link_text)
         return action_type, llm_link_text
     except json.JSONDecodeError:
         print("Error: Invalid JSON response from LLM")
         return None, None
+
+
+def first_interaction():  # this function will be called at the beginning of all request, first interaction of agent and user
+    speak_text("How can I help you? Start saying your request and when you finish, say quit")
+    user_intent_unclean = start_streaming()
+    user_intent = delete_last_word(user_intent_unclean)
+    return user_intent
+
+
+def failed_announcement():  # call this function whenever the agent wants to announce a failure
+    speak_text("Action failed")
+
+
+def complete_announcement(): # call this function whenever the agent wants to announce a complete task
+    speak_text("Action completed")
+
 
 def main(driver, initial_url, user_intent):
     function.navigate_to_URL(driver, initial_url)
@@ -165,7 +187,7 @@ def main(driver, initial_url, user_intent):
             function.type_text_with_LLM_link_text(driver, llm_link_text, "book")
             print(f"Typed 'book' into element: {llm_link_text}")
         elif action_type == "enter":
-            function.press_enter(driver)         
+            function.press_enter(driver)
             print("Pressed Enter")
         else:
             print("No valid action determined. Stopping the loop.")
@@ -173,10 +195,11 @@ def main(driver, initial_url, user_intent):
     except (NoSuchElementException, TimeoutException) as e:
         print(f"Error occurred: {e}. Stopping the loop.")
 
+
 if __name__ == "__main__":
     driver = function.initialize_driver()
-    user_intent = "Search for a book on Amazon"  
-
+    # user_intent = "Search for a book on Amazon"
+    user_intent = first_interaction()
     try:
         main(driver, "http://amazon.ca", user_intent)
     finally:
