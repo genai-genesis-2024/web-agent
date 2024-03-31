@@ -153,7 +153,7 @@ def generate_text(prompt: str) -> str:
     return response
 
 
-def determine_next_action(queries, user_intent):
+def determine_next_action(queries, user_intent, action_log):
     sys_msg = """
     You are an AI assistant that helps users navigate websites based on their intent, and you only return in a JSON formatand only JSON format.
     Analyze the user's intent and the available queries to determine the next action to take on the website.
@@ -163,18 +163,28 @@ def determine_next_action(queries, user_intent):
     - If scrolling is required to view more content, return the 'scroll' action.
     - If 'enter' is required to select button, return the 'enter' action.
     - If the user's intent is unclear or cannot be fulfilled with the available queries, return the 'listen' action to get more instructions from the user.
+    - If the user's intent is fulfilled, return the 'stop' action to terminate the session.
     """
 
+    newline = "\n"
     input_text = f"""
     System Message: {sys_msg}
 
     User Intent: {user_intent}
     Queries: {queries}
 
-    Determine the next action based on the user intent and the available queries. Return the action type (click, scroll, type, enter, listen) and the corresponding 'llm_link_text' value.
+    Determine the next action based on the user intent and the available queries. Return the action type (click, scroll, type, enter, listen, stop) and the corresponding 'llm_link_text' value.
     For example: if the next step is to search for a book, then look for texts that are similar to search and extract the 'llm_link_text' of the search input field.
     Notice that in the queries, there might be an entry like 'id': 'twotabsearchtextbox', 'type': 'text', 'placeholder': 'Search Amazon.ca', 'llm_link_text': 'ID:twotabsearchtextbox'.
+<<<<<<< HEAD
     In this case, you would return 'ID:twotabsearchtextbox' as the 'llm_link_text' and 'type' as the 'action_type' and 'book' as the data_value. In case the 'llm_link_text' is very long, always return the full 'llm_link_text'.
+=======
+    In this case, you would return 'ID:twotabsearchtextbox' as the 'llm_link_text' and 'type' as the 'action_type' and 'book' as the data_value.
+    
+    Past Action:
+    The following are the past actions you have taken to fulfill the user's intent. Reference your past actions to prevent repeating the same action.
+    {newline.join(action_log)}
+>>>>>>> d4b6c0a3b7cf25d0cbd5a60f1e3e92c8dc2f78e7
     """
     #input_text = f"User Intent: {user_intent}\nQueries: {queries}\n\nDetermine the next action based on the user intent and the available queries. Return the action type (click, scroll, type, enter) and the corresponding 'llm_link_text' value. For example: if the next steps is to search for a book, then look the texts that ae similar to search and then get extract the llm_link_text of the search , notice that is in here 'id': 'twotabsearchtextbox', 'type': 'text', 'placeholder': 'Search Amazon.ca', 'llm_link_text': 'ID:twotabsearchtextbox' so you would return twotabsearchtextbox as the llm_link_text and type in action_type"
 
@@ -219,49 +229,58 @@ def find_most_similar(target, strings):
 def main(driver, initial_url, user_intent):
     function.navigate_to_URL(driver, initial_url)
 
-    try:
-        queries = function.screenshot_with_highlights_and_labels(driver)
-        print("*"*20)
-        print(queries)
-        print("Screenshot taken with highlights and labels.")
-        print("*"*20)
+    action_log = [] 
 
-        # The function might return two or three values depending on the presence of 'data_value'
-        action_info = determine_next_action(queries, user_intent)
-        action_type, llm_link_text = action_info[:2]  # Always get these two values
+    while True:
+        try:
+            queries = function.screenshot_with_highlights_and_labels(driver)
+            print("*"*20)
+            print(queries)
+            print("Screenshot taken with highlights and labels.")
+            print("*"*20)
 
-        print(action_type)
-        print(llm_link_text)
+            # The function might return two or three values depending on the presence of 'data_value'
+            action_info = determine_next_action(queries, user_intent, action_log)
+            action_type, llm_link_text = action_info[:2]  # Always get these two values
 
-        action_type = find_most_similar(action_type, ["click", "scroll", "type", "enter", "listen"])
-        # MATCH llm_link_text with available list of link text
+            print(action_type)
+            print(llm_link_text)
 
-        if action_type == "click":
-            function.click_element_with_LLM_link_text(driver, llm_link_text)
-            print(f"Clicked on element: {llm_link_text}")
-        elif action_type == "scroll":
-            function.scroll_page(driver, 1000)
-            print("Scrolled the page")
-        elif action_type == "type":
-            # Check if 'data_value' was returned and use it
-            if len(action_info) == 3:
-                data_value = action_info[2]
-                function.type_text_with_LLM_link_text(driver, llm_link_text, data_value)
-                print(f"Typed '{data_value}' into element: {llm_link_text}")
+            action_type = find_most_similar(action_type, ["click", "scroll", "type", "enter", "listen", "stop"])
+            # MATCH llm_link_text with available list of link text
+
+            if action_type == "click":
+                function.click_element_with_LLM_link_text(driver, llm_link_text)
+                print(f"Clicked on element: {llm_link_text}")
+            elif action_type == "scroll":
+                function.scroll_page(driver, 1000)
+                print("Scrolled the page")
+            elif action_type == "type":
+                # Check if 'data_value' was returned and use it
+                if len(action_info) == 3:
+                    data_value = action_info[2]
+                    function.type_text_with_LLM_link_text(driver, llm_link_text, data_value)
+                    print(f"Typed '{data_value}' into element: {llm_link_text}")
+                else:
+                    print("Data value not provided for typing action.")
+            elif action_type == "enter":
+                function.press_enter(driver)
+                print("Pressed Enter")
+            elif action_type == "listen":
+                print("No valid action determined. Waiting for user input.")
+                user_input = start_streaming()
+                print(f"User input: {user_input}")
+            elif action_type == "stop":
+                print("User's intent fulfilled. Terminating the session.")
+                break
             else:
-                print("Data value not provided for typing action.")
-        elif action_type == "enter":
-            function.press_enter(driver)
-            print("Pressed Enter")
-        elif action_type == "listen":
-            print("No valid action determined. Waiting for user input.")
-            user_input = start_streaming()
-            print(f"User input: {user_input}")
-        else:
-            print("No valid action determined. Stopping the loop.")
+                print("No valid action determined. Stopping the loop.")
 
-    except (NoSuchElementException, TimeoutException) as e:
-        print(f"Error occurred: {e}. Stopping the loop.")
+            action_summary = action_type if action_type != "click" else action_type + "ed on " + llm_link_text
+            action_log.append(action_summary)
+
+        except (NoSuchElementException, TimeoutException) as e:
+            print(f"Error occurred: {e}. Stopping the loop.")
 
 
 if __name__ == "__main__":
