@@ -24,10 +24,10 @@ def main(driver, initial_url):
         function.type_text_with_LLM_link_text(driver, "ID:twotabsearchtextbox", "book")
         function.press_enter(driver)
         # TODO: Everytime a new page is loaded, we need to re-capture the screenshot
-        queries = function.screenshot_with_highlights_and_labels(driver)
-        function.scroll_page(driver, 1000)
-        time.sleep(5)
-        function.click_element_with_LLM_link_text(driver, "ID:nav-orders")
+        # queries = function.screenshot_with_highlights_and_labels(driver)
+        # function.scroll_page(driver, 1000)
+        # time.sleep(5)
+        # function.click_element_with_LLM_link_text(driver, "ID:nav-orders")
         # print(f"Clicked on element: {next_click_text}")
     except (NoSuchElementException, TimeoutException) as e:
         print(f"Error occurred: {e}. Stopping the loop.")

@@ -68,17 +68,10 @@ def prepare_element_data_for_gemini(driver):
         # Special handling for 'LLM-link-text', check for non-empty value immediately
         llm_link_text = element.get_attribute('LLM-link-text')
         if llm_link_text:
-            llm_link_text = llm_link_text.strip()
-            if llm_link_text:  # Ensure it's not just whitespace
-                element_data['llm_link_text'] = llm_link_text
-            else:
-                return None
-        else:
-            return None
+            element_data['llm_link_text'] = llm_link_text.strip()
 
         if element_data:
             queries.append(element_data)
-    print(queries)
     return queries
 
 def navigate_to_URL(driver, URL):
@@ -113,10 +106,8 @@ def screenshot_with_highlights_and_labels(driver):
     });
     """
     driver.execute_script(highlight_and_label_script) 
-
     queries = prepare_element_data_for_gemini(driver)
-
-
+    print(queries)
     os.makedirs("screenshots", exist_ok=True)
     filename = f"screenshots/screenshot_{str(uuid.uuid4())}.png"
     driver.save_screenshot(filename)
