@@ -15,6 +15,7 @@ from pydantic import BaseModel, ValidationError
 from typing import List, Dict
 from Speech_to_text import start_streaming, delete_last_word
 from text_to_speech import speak_text
+import difflib
 
 load_dotenv()
 
@@ -146,7 +147,6 @@ class GoogleVertexAIModel:
             raise ValueError("Invalid JSON data type. Expected dict or list.")
         return validated_data, validation_errors
 
-
 def generate_text(prompt: str) -> str:
     gemini_model_instance = GoogleVertexAIModel(project_id=GOOGLE_PROJECT_ID, location=GOOGLE_LOCATION)
     response = gemini_model_instance.call(prompt=prompt)
@@ -214,6 +214,15 @@ def failed_announcement():  # call this function whenever the agent wants to ann
 def complete_announcement(): # call this function whenever the agent wants to announce a complete task
     speak_text("Action completed")
 
+def find_most_similar(target, strings):
+        highest_score = 0
+        most_similar = None
+        for string in strings:
+            similarity = difflib.SequenceMatcher(None, target, string).ratio()
+            if similarity > highest_score:
+                highest_score = similarity
+                most_similar = string
+        return most_similar
 
 def main(driver, initial_url, user_intent):
     function.navigate_to_URL(driver, initial_url)
@@ -228,6 +237,9 @@ def main(driver, initial_url, user_intent):
 
         print(action_type)
         print(llm_link_text)
+
+        action_type = find_most_similar(action_type, ["click", "scroll", "type", "enter", "listen"])
+        # MATCH llm_link_text with available list of link text
 
         if action_type == "click":
             function.click_element_with_LLM_link_text(driver, llm_link_text)
