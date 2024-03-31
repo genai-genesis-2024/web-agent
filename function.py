@@ -65,10 +65,12 @@ def prepare_element_data_for_gemini(driver):
         if element_text:
             element_data['text'] = element_text
 
-        # Special handling for 'LLM-link-text', check for non-empty value immediately
-        llm_link_text = element.get_attribute('LLM-link-text')
+        # Special handling for 'llm-link-text', check for non-empty value immediately
+        llm_link_text = element.get_attribute('llm-link-text')
         if llm_link_text:
             element_data['llm_link_text'] = llm_link_text.strip()
+        else:
+            continue
 
         if element_data:
             queries.append(element_data)
@@ -101,7 +103,7 @@ def screenshot_with_highlights_and_labels(driver):
         // }
 
         if (contentToUse) {
-            element.setAttribute('LLM-link-text', contentToUse);
+            element.setAttribute('llm-link-text', contentToUse);
         }
     });
     """
@@ -156,12 +158,12 @@ def get_latest_screenshot():
 def click_element_with_LLM_link_text(driver, llm_link_text):
     try:
         element = WebDriverWait(driver, 10).until(
-            EC.element_to_be_clickable((By.XPATH, f"//*[@LLM-link-text='{llm_link_text}']"))
+            EC.element_to_be_clickable((By.XPATH, f"//*[@llm-link-text='{llm_link_text}']"))
         )
         driver.execute_script("arguments[0].scrollIntoView(true);", element)
         element.click()
     except Exception as e:
-        print(f"Unexpected error clicking on element with LLM-link-text '{llm_link_text}': {e}")
+        print(f"Unexpected error clicking on element with llm-link-text '{llm_link_text}': {e}")
 
 # def click_element(driver, xpath):
 #     element = WebDriverWait(driver, 10).until(
@@ -172,11 +174,11 @@ def click_element_with_LLM_link_text(driver, llm_link_text):
 def type_text_with_LLM_link_text(driver, llm_link_text, text):
     try:
         element = WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.XPATH, f"//*[@LLM-link-text='{llm_link_text}']"))
+            EC.presence_of_element_located((By.XPATH, f"//*[@llm-link-text='{llm_link_text}']"))
         )
         element.clear()
         element.send_keys(text)
-        print(f"Typed '{text}' into input with LLM-link-text: '{llm_link_text}'")
+        print(f"Typed '{text}' into input with llm-link-text: '{llm_link_text}'")
     except Exception as e:
         print(f"Error typing text into input: {e}")
 
