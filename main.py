@@ -176,15 +176,11 @@ def determine_next_action(queries, user_intent, action_log):
     Determine the next action based on the user intent and the available queries. Return the action type (click, scroll, type, enter, listen, stop) and the corresponding 'llm_link_text' value.
     For example: if the next step is to search for a book, then look for texts that are similar to search and extract the 'llm_link_text' of the search input field.
     Notice that in the queries, there might be an entry like 'id': 'twotabsearchtextbox', 'type': 'text', 'placeholder': 'Search Amazon.ca', 'llm_link_text': 'ID:twotabsearchtextbox'.
-<<<<<<< HEAD
     In this case, you would return 'ID:twotabsearchtextbox' as the 'llm_link_text' and 'type' as the 'action_type' and 'book' as the data_value. In case the 'llm_link_text' is very long, always return the full 'llm_link_text'.
-=======
-    In this case, you would return 'ID:twotabsearchtextbox' as the 'llm_link_text' and 'type' as the 'action_type' and 'book' as the data_value.
     
     Past Action:
     The following are the past actions you have taken to fulfill the user's intent. Reference your past actions to prevent repeating the same action.
     {newline.join(action_log)}
->>>>>>> d4b6c0a3b7cf25d0cbd5a60f1e3e92c8dc2f78e7
     """
     #input_text = f"User Intent: {user_intent}\nQueries: {queries}\n\nDetermine the next action based on the user intent and the available queries. Return the action type (click, scroll, type, enter) and the corresponding 'llm_link_text' value. For example: if the next steps is to search for a book, then look the texts that ae similar to search and then get extract the llm_link_text of the search , notice that is in here 'id': 'twotabsearchtextbox', 'type': 'text', 'placeholder': 'Search Amazon.ca', 'llm_link_text': 'ID:twotabsearchtextbox' so you would return twotabsearchtextbox as the llm_link_text and type in action_type"
 
