@@ -4,6 +4,8 @@ from selenium.common.exceptions import TimeoutException, NoSuchElementException
 from selenium.webdriver.support.ui import WebDriverWait
 import time
 from selenium.common.exceptions import NoSuchElementException, TimeoutException
+from sklearn.metrics.pairwise import cosine_similarity
+from sklearn.feature_extraction.text import TfidfVectorizer
 
 import os
 from dotenv import load_dotenv
@@ -173,7 +175,7 @@ def determine_next_action(queries, user_intent, action_log):
     User Intent: {user_intent}
     Queries: {queries}
 
-    Determine the next action based on the user intent and the available queries. Return the action type (click, scroll, type, enter, listen, stop) and the corresponding 'llm_link_text' value.
+    Determine the next action based on the user intent and the available queries. Return the action type (click, scroll, type, listen, stop) and the corresponding 'llm_link_text' value.
     For example: if the next step is to search for a book, then look for texts that are similar to search and extract the 'llm_link_text' of the search input field.
     Notice that in the queries, there might be an entry like 'id': 'twotabsearchtextbox', 'type': 'text', 'placeholder': 'Search Amazon.ca', 'llm_link_text': 'ID:twotabsearchtextbox'.
     In this case, you would return 'ID:twotabsearchtextbox' as the 'llm_link_text' and 'type' as the 'action_type' and 'book' as the data_value. In case the 'llm_link_text' is very long, always return the full length of the value of key'llm_link_text'.
@@ -213,14 +215,41 @@ def agent_text_to_speech(text):  # this function will be called at the beginning
     return user_intent
 
 def find_most_similar(target, strings):
-        highest_score = 0
-        most_similar = None
-        for string in strings:
-            similarity = difflib.SequenceMatcher(None, target, string).ratio()
-            if similarity > highest_score:
-                highest_score = similarity
-                most_similar = string
-        return most_similar
+    strings_with_target = [target] + strings
+    
+    vectorizer = TfidfVectorizer().fit(strings_with_target)
+    vectors = vectorizer.transform(strings_with_target)
+    
+    # The first vector represents the target text
+    target_vector = vectors[0]
+    
+    # Compute cosine similarity between the target and the rest of the strings
+    similarities = cosine_similarity(target_vector, vectors[1:])[0]
+    
+    # Finding the index of the highest similarity score
+    most_similar_index = similarities.argmax()
+    
+    return strings[most_similar_index]
+
+def find_most_similar_llm_link_text(target, strings):
+    # Adding the target string to the list for vectorization
+    for i in range(len(strings)):
+        strings[i] = strings[i]['llm_link_text']
+    strings_with_target = [target] + strings
+    
+    vectorizer = TfidfVectorizer().fit(strings_with_target)
+    vectors = vectorizer.transform(strings_with_target)
+    
+    # The first vector represents the target text
+    target_vector = vectors[0]
+    
+    # Compute cosine similarity between the target and the rest of the strings
+    similarities = cosine_similarity(target_vector, vectors[1:])[0]
+    
+    # Finding the index of the highest similarity score
+    most_similar_index = similarities.argmax()
+    
+    return strings[most_similar_index]
 
 def main(driver, initial_url, user_intent):
     function.navigate_to_URL(driver, initial_url)
@@ -243,7 +272,7 @@ def main(driver, initial_url, user_intent):
             print(llm_link_text)
 
             action_type = find_most_similar(action_type, ["click", "scroll", "type", "listen", "stop"])
-            # MATCH llm_link_text with available list of link text
+            llm_link_text = find_most_similar_llm_link_text(llm_link_text, queries)
 
             if action_type == "click":
                 function.click_element_with_LLM_link_text(driver, llm_link_text)
@@ -260,9 +289,6 @@ def main(driver, initial_url, user_intent):
                     print(f"Typed '{data_value}' into element: {llm_link_text}")
                 else:
                     print("Data value not provided for typing action.")
-            # elif action_type == "enter":
-            #     function.press_enter(driver)
-            #     print("Pressed Enter")
             elif action_type == "listen":
                 print("No valid action determined. Waiting for user input.")
                 user_intent = agent_text_to_speech("Can you clarify your request by adding more details, and when you finish, say quit")
