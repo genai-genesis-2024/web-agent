@@ -5,3 +5,4 @@ vertexai
 uuid
 google-cloud-aiplatform>=1.38
 python-dotenv
+google-cloud-texttospeech
