@@ -253,6 +253,9 @@ if __name__ == "__main__":
         transcribed_text, end_session = start_streaming()
         print(transcribed_text)
 
+        processed_text = delete_last_word(transcribed_text)
+        print(processed_text)
+
         if end_session:
             print("Ending the program.")
             break  # Exit the while loop and end the program
