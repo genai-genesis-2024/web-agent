@@ -10,6 +10,7 @@ from google.cloud import storage
 from dotenv import load_dotenv
 import gemini_vision
 import json
+from selenium.common.exceptions import TimeoutException, NoSuchElementException, StaleElementReferenceException, ElementClickInterceptedException
 
 load_dotenv()
 
@@ -21,82 +22,116 @@ def initialize_driver():
     options.headless = True
     # options.add_argument("--headless=false")
     options.add_argument("--disable-extensions")
-    options.add_argument("--disable-gpu")
+    # options.add_argument("--disable-gpu")
     options.add_argument("--no-sandbox")
     # TODO: The demo person need to update the binary_location and user-data-dir
-    # options.binary_location = r"C:/Users/vince/AppData/Local/Google/Chrome SxS/Application/chrome.exe"
+    options.binary_location = r"C:/Users/vince/AppData/Local/Google/Chrome SxS/Application/chrome.exe"
     # Maybe specify the profile directory "/Profile 1"
-    # options.add_argument(r"user-data-dir=C:/Users/vince/AppData/Local/Google/Chrome SxS/User Data")
-    # options.add_argument("--profile-directory=Default");
+    options.add_argument(r"user-data-dir=C:/Users/vince/AppData/Local/Google/Chrome SxS/User Data")
+    options.add_argument("--profile-directory=Default");
 
     driver = webdriver.Chrome(options=options)
     return driver
 
-def click_element_by_LLM_link_text(driver, text):
-    try:
-        # Using XPath to find an element with a specific LLM-link-text attribute
-        element = WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.XPATH, f"//*[@LLM-link-text='{text}']"))
-        )
-        element.click()
-    except Exception as e:
-        print(f"Error clicking on element with text '{text}': {e}")
+def generate_simple_xpath(element):
+    tag = element.tag_name
+    element_id = element.get_attribute('id')
+    element_name = element.get_attribute('name')
+    class_names = element.get_attribute('class').split() 
 
-def verify_highlights_and_labels(driver):
-    modified_elements = driver.find_elements(By.CSS_SELECTOR, 'a, button, input, [role="link"], [role="button"]')
-    for element in modified_elements:
-        llm_link_text = element.get_attribute('LLM-link-text')
-        border_style = element.value_of_css_property('border')
-        if llm_link_text:
-            print(f"Element text: '{llm_link_text}', Border style: '{border_style}'")
+    if element_id:
+        return f"//*[@id='{element_id}']"
+    elif element_name:
+        return f"//{tag}[@name='{element_name}']"
+    elif class_names:
+        return f"//{tag}[contains(@class, '{class_names[0]}')]"
+    else:
+        return f"//{tag}"
 
 def prepare_element_data_for_gemini(driver):
     modified_elements = driver.find_elements(By.CSS_SELECTOR, 'a, button, input, [role="link"], [role="button"]')
-    
     queries = []
     
     for element in modified_elements:
+        element_data = {}
+        
+        # Attributes that do not require special conditions
+        for attr in ['id', 'type', 'placeholder']:
+            value = element.get_attribute(attr)
+            if value:
+                element_data[attr] = value
+
+        element_text = element.text.strip()
+        if element_text:
+            element_data['text'] = element_text
+
+        # Special handling for 'LLM-link-text', check for non-empty value immediately
         llm_link_text = element.get_attribute('LLM-link-text')
         if llm_link_text:
-            queries.append({
-                'type': 'text', 
-                'content': llm_link_text.strip()
-            })
+            llm_link_text = llm_link_text.strip()
+            if llm_link_text:  # Ensure it's not just whitespace
+                element_data['llm_link_text'] = llm_link_text
+            else:
+                return None
+        else:
+            return None
+
+        if element_data:
+            queries.append(element_data)
+    print(queries)
     return queries
 
-def screenshot_with_highlights_and_labels(URL):
-    driver = initialize_driver()
+def navigate_to_URL(driver, URL):
     driver.get(URL)
     driver.maximize_window()
 
+def screenshot_with_highlights_and_labels(driver):
     WebDriverWait(driver, 10).until(EC.visibility_of_element_located((By.TAG_NAME, "body")))
-
     highlight_and_label_script = """
     document.querySelectorAll('a, button, input, [role="link"], [role="button"]').forEach(function(element) {
         element.style.border = '2px solid red';
-        let linkText = element.textContent.replace(/\\s+/g, ' ').trim();
-        element.setAttribute('LLM-link-text', linkText);
+        let idContent = element.id.trim();
+        let textContent = element.textContent.replace(/\\s+/g, ' ').trim();
+        let placeholderContent = element.placeholder ? element.placeholder.trim() : '';
+        // let tagNameContent = element.tagName.toLowerCase();
+        let contentToUse = '';
+
+        if (idContent) {
+            contentToUse = 'ID:' + idContent; // Prefer ID if available
+        } else if (element.tagName.toLowerCase() === 'input' && placeholderContent) {
+            contentToUse = 'Placeholder:' + placeholderContent;
+        } else if (textContent) {
+            contentToUse = 'Text:' + textContent; // Then textContent for other elements
+        } 
+        // else {
+        //     contentToUse = 'Tag:' + tagNameContent; // Fallback to tagName
+        // }
+
+        if (contentToUse) {
+            element.setAttribute('LLM-link-text', contentToUse);
+        }
     });
     """
     driver.execute_script(highlight_and_label_script) 
 
-    # Test
-    verify_highlights_and_labels(driver)
-
     queries = prepare_element_data_for_gemini(driver)
-    # response = gemini_vision.call_gemini_vision(project_id=GOOGLE_PROJECT_ID, location=GOOGLE_LOCATION, queries=queries)
 
 
     os.makedirs("screenshots", exist_ok=True)
     filename = f"screenshots/screenshot_{str(uuid.uuid4())}.png"
     driver.save_screenshot(filename)
-
     # upload_to_storage(filename)
-    
-
     ## ToDO: upload each of these screenshots to Google cloud storage 
+    return queries
 
-
+def wait_for_custom_event(driver, css_selector, timeout=30):
+    try:
+        WebDriverWait(driver, timeout).until(
+            EC.presence_of_element_located((By.CSS_SELECTOR, css_selector))
+        )
+        print(f"Event occurred: element with selector {css_selector} is present.")
+    except TimeoutException:
+        print(f"Timeout waiting for event: element with selector {css_selector} did not appear within {timeout} seconds.")
 
 
 # this is gor uplpoading to storage 
@@ -110,7 +145,6 @@ def upload_to_storage(filename):
 
     with open(filename, "rb") as file:
         blob.upload_from_file(file)
-
     print(f"Screenshot uploaded to Google Cloud Storage: {blob_name}")
 
 
@@ -128,28 +162,46 @@ def get_latest_screenshot():
 
     return filename
 
+def click_element_with_LLM_link_text(driver, llm_link_text):
+    try:
+        element = WebDriverWait(driver, 10).until(
+            EC.element_to_be_clickable((By.XPATH, f"//*[@LLM-link-text='{llm_link_text}']"))
+        )
+        driver.execute_script("arguments[0].scrollIntoView(true);", element)
+        element.click()
+    except Exception as e:
+        print(f"Unexpected error clicking on element with LLM-link-text '{llm_link_text}': {e}")
 
+# def click_element(driver, xpath):
+#     element = WebDriverWait(driver, 10).until(
+#         EC.presence_of_element_located((By.XPATH, xpath))
+#     )
+#     element.click()
 
-def click_element(driver, xpath):
-    element = WebDriverWait(driver, 10).until(
-        EC.presence_of_element_located((By.XPATH, xpath))
-    )
-    element.click()
+def type_text_with_LLM_link_text(driver, llm_link_text, text):
+    try:
+        element = WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.XPATH, f"//*[@LLM-link-text='{llm_link_text}']"))
+        )
+        element.clear()
+        element.send_keys(text)
+        print(f"Typed '{text}' into input with LLM-link-text: '{llm_link_text}'")
+    except Exception as e:
+        print(f"Error typing text into input: {e}")
+
+# def type_text(driver, xpath, text):
+#     element = WebDriverWait(driver, 10).until(
+#         EC.presence_of_element_located((By.XPATH, xpath))
+#     )
+#     element.send_keys(text)
 
 def scroll_page(driver, pixels):
     driver.execute_script(f"window.scrollBy(0, {pixels});")
-
-def type_text(driver, xpath, text):
-    element = WebDriverWait(driver, 10).until(
-        EC.presence_of_element_located((By.XPATH, xpath))
-    )
-    element.send_keys(text)
 
 def press_enter(driver):
     actions = webdriver.ActionChains(driver)
     actions.send_keys(Keys.ENTER)
     actions.perform()
 
-if __name__ == "__main__":
-    screenshot_with_highlights_and_labels( "http://amazon.ca")
+
 
