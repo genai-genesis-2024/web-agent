@@ -22,8 +22,14 @@ audio_config = texttospeech.AudioConfig(audio_encoding=texttospeech.AudioEncodin
 # Perform the text-to-speech request on the text input with the selected voice parameters and audio file type
 response = client.synthesize_speech(input=synthesis_input, voice=voice, audio_config=audio_config)
 
-audio_byte_stream = io.BytesIO(response.audio_content)
-audio = AudioSegment.from_file(audio_byte_stream, format="mp3")
-play(audio)
+# The response's audio_content is binary.
+with open("output.mp3", "wb") as out:
+    # Write the response to the output file.
+    out.write(response.audio_content)
+    print('Audio content written to file "output.mp3"')
+
+# audio_byte_stream = io.BytesIO(response.audio_content)
+# audio = AudioSegment.from_file(audio_byte_stream, format="mp3")
+# play(audio)
 
 # python c:/Users/vince/OneDrive/Desktop/web-agent/text_to_speech.py
