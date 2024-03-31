@@ -209,8 +209,9 @@ def determine_next_action(queries, user_intent, action_log):
 
 def agent_text_to_speech(text):  # this function will be called at the beginning of all request, first interaction of agent and user
     speak_text(text)
-    user_intent_unclean = start_streaming()
-    user_intent = delete_last_word(user_intent_unclean)
+    #user_intent_unclean = start_streaming()
+    #user_intent = delete_last_word(user_intent_unclean)
+    user_intent = start_streaming()
     return user_intent
 
 def find_most_similar(target, strings):
