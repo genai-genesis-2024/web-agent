@@ -176,15 +176,7 @@ class MicrophoneStream:
 #     return transcript
 
 def listen_print_loop(responses):
-    """Iterates through server responses and concatenates them into a single string.
-
-    Args:
-        responses: List of server responses
-
-    Returns:
-        The concatenated transcribed text.
-    """
-    full_transcription = ""  # Initialize an empty string to hold the transcriptions
+    num_chars_printed = 0
     for response in responses:
         if not response.results:
             continue
@@ -194,15 +186,23 @@ def listen_print_loop(responses):
             continue
 
         transcript = result.alternatives[0].transcript
+        overwrite_chars = " " * (num_chars_printed - len(transcript))
 
-        if result.is_final:
-            full_transcription += transcript + " "  # Add the transcription to the string
+        if not result.is_final:
+            sys.stdout.write(transcript + overwrite_chars + '\r')
+            sys.stdout.flush()
+            num_chars_printed = len(transcript)
+        else:
+            print(transcript + overwrite_chars)
+            num_chars_printed = 0
+            if re.search(r"\b(quit)\b", transcript, re.I):
+                print("Quitting current session..")
+                return transcript, False  # Continue in the main loop
+            if re.search(r"\b(end)\b", transcript, re.I):
+                print("Ending the session permanently..")
+                return transcript, True  # Break from the main loop
 
-            # Optionally, you can also check for exit commands within this loop
-            if re.search(r"\b(exit|quit)\b", transcript, re.I):
-                break  # If you find an exit command, break from the loop
-
-    return full_transcription.strip()
+    return "", False  # Continue by default
 
 
 def start_streaming():
@@ -248,6 +248,16 @@ def delete_last_word(transcript):
 
 
 if __name__ == "__main__":
-    transcribed_text = start_streaming()
-    print(transcribed_text)
-    print(delete_last_word(transcribed_text))
+    while True:
+        # Start the streaming and processing of the speech
+        transcribed_text, end_session = start_streaming()
+        print(transcribed_text)
+
+        if end_session:
+            print("Ending the program.")
+            break  # Exit the while loop and end the program
+
+        # The loop will automatically continue if "quit" was said, restarting the session
+        print("Restarting the session...")
+
+    print("Program terminated.")
