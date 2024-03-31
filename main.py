@@ -1,4 +1,5 @@
 import function
+from Speech_to_text import start_streaming
 from selenium.common.exceptions import TimeoutException, NoSuchElementException
 from selenium.webdriver.support.ui import WebDriverWait
 import time
@@ -129,7 +130,7 @@ def generate_text(prompt: str) -> str:
     return response
 
 def determine_next_action(queries, user_intent):
-    input_text = f"User Intent: {user_intent}\nQueries: {queries}\n\nDetermine the next action based on the user intent and the available queries. Return the action type (click, scroll, type, enter) and the corresponding 'llm_link_text' value. For example: if the next steps is to search for a book, then look the texts that ae similar to search and then get extract the llm_link_text of the search , notice that is in here 'id': 'twotabsearchtextbox', 'type': 'text', 'placeholder': 'Search Amazon.ca', 'llm_link_text': 'ID:twotabsearchtextbox' so you would return twotabsearchtextbox as the llm_link_text and type in action_type"
+    input_text = f"User Intent: {user_intent}\nQueries: {queries}\n\nDetermine the next action based on the user intent and the available queries. Return the action type (click, scroll, type, enter, listen) and the corresponding 'llm_link_text' value. For example: if the next steps is to search for a book, then look the texts that ae similar to search and then get extract the llm_link_text of the search , notice that is in here 'id': 'twotabsearchtextbox', 'type': 'text', 'placeholder': 'Search Amazon.ca', 'llm_link_text': 'ID:twotabsearchtextbox' so you would return twotabsearchtextbox as the llm_link_text and type in action_type. If you don't have enough information to select an action, choose 'listen' to get more information from the user."
 
     response = generate_text(input_text)
     print(response)
@@ -167,6 +168,10 @@ def main(driver, initial_url, user_intent):
         elif action_type == "enter":
             function.press_enter(driver)         
             print("Pressed Enter")
+        elif action_type == "listen":
+            print("No valid action determined. Waiting for user input.")
+            user_input = start_streaming()
+            print(f"User input: {user_input}")
         else:
             print("No valid action determined. Stopping the loop.")
 
