@@ -5,49 +5,56 @@ from google.cloud import texttospeech
 # import io
 import pyaudio
 
-# Set the path to your Google Cloud credentials
-os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "key.json"
 
-# Instantiates a client
-client = texttospeech.TextToSpeechClient()
+def speak_text(text):
+    """Uses Google Cloud Text-to-Speech to speak the provided text."""
 
-# Set the text input to be synthesized
-synthesis_input = texttospeech.SynthesisInput(text="action failed, what do you want?")
+    # Set the path to your Google Cloud credentials
+    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "key.json"
 
-# Build the voice request, select the language code ("en-US") and the ssml voice gender ("neutral")
-voice = texttospeech.VoiceSelectionParams(
-    language_code="en-US",
-    name="en-US-Journey-F"
-)
-# Select the type of audio file you want returned
-# audio_config = texttospeech.AudioConfig(audio_encoding=texttospeech.AudioEncoding.MP3)
+    # Instantiates a client
+    client = texttospeech.TextToSpeechClient()
 
-audio_config = texttospeech.AudioConfig(
-    audio_encoding=texttospeech.AudioEncoding.LINEAR16,
-    effects_profile_id=["small-bluetooth-speaker-class-device"],
-    pitch=4,
-    speaking_rate=1
-)
+    # Set the text input to be synthesized
+    synthesis_input = texttospeech.SynthesisInput(text=text)
 
-response = client.synthesize_speech(
-    input=synthesis_input,
-    voice=voice,
-    audio_config=audio_config
-)
+    # Build the voice request, select the language code ("en-US") and the ssml voice gender ("neutral")
+    voice = texttospeech.VoiceSelectionParams(
+        language_code="en-US",
+        name="en-US-Journey-F"
+    )
+    # Select the type of audio file you want returned
+    # audio_config = texttospeech.AudioConfig(audio_encoding=texttospeech.AudioEncoding.MP3)
+    audio_config = texttospeech.AudioConfig(
+        audio_encoding=texttospeech.AudioEncoding.LINEAR16,
+        effects_profile_id=["small-bluetooth-speaker-class-device"],
+        pitch=2,
+        speaking_rate=1
+    )
 
-# The response's audio_content is binary. In this case, we will play it directly
-# rather than writing it to a file
-audio_stream = pyaudio.PyAudio().open(
-    format=pyaudio.paInt16,
-    channels=1,
-    rate=24000,  # This is a typical rate for LINEAR16 audio, adjust as needed
-    output=True
-)
+    response = client.synthesize_speech(
+        input=synthesis_input,
+        voice=voice,
+        audio_config=audio_config
+    )
 
-# Play the stream directly
-audio_stream.write(response.audio_content)
-audio_stream.stop_stream()
-audio_stream.close()
+    py_audio = pyaudio.PyAudio()
+    audio_stream = pyaudio.PyAudio().open(
+        format=pyaudio.paInt16,
+        channels=1,
+        rate=24000,  # This is a typical rate for LINEAR16 audio, adjust as needed
+        output=True
+    )
+
+    # Play the stream directly
+    audio_stream.write(response.audio_content)
+    audio_stream.stop_stream()
+    audio_stream.close()
+    py_audio.terminate()
+
+
+# Example usage:
+speak_text("Hello, how can I assist you today?")
 
 
 
