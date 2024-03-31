@@ -2,6 +2,8 @@ import function
 from selenium.common.exceptions import TimeoutException, NoSuchElementException
 from selenium.webdriver.support.ui import WebDriverWait
 import time
+from selenium.common.exceptions import NoSuchElementException, TimeoutException
+
 #import gemini_vision
 
 import os
@@ -129,20 +131,50 @@ def generate_text(prompt: str) -> str:
     return response
 
 def determine_next_action(queries, user_intent):
-    input_text = f"User Intent: {user_intent}\nQueries: {queries}\n\nDetermine the next action based on the user intent and the available queries. Return the action type (click, scroll, type, enter) and the corresponding 'llm_link_text' value. For example: if the next steps is to search for a book, then look the texts that ae similar to search and then get extract the llm_link_text of the search , notice that is in here 'id': 'twotabsearchtextbox', 'type': 'text', 'placeholder': 'Search Amazon.ca', 'llm_link_text': 'ID:twotabsearchtextbox' so you would return twotabsearchtextbox as the llm_link_text and type in action_type"
+    sys_msg = """
+    You are an AI assistant that helps users navigate websites based on their intent, and you only return in a JSON formatand only JSON format.
+    Analyze the user's intent and the available queries to determine the next action to take on the website.
+    Consider the following guidelines:
+    - If the user wants to search for something, identify the search input field and return the appropriate 'llm_link_text', 'type' action and the 'data_value', the data_value is what you want to search make it concise . 'type' actions ALWAYS return a data_value. 'type' actions are ALWAYS followed by the 'enter' action
+    - If the user wants to navigate to a specific section or product, identify the relevant link or button and return the 'llm_link_text' and 'click' action.
+    - If scrolling is required to view more content, return the 'scroll' action.
+    - If 'enter' is required to select button, return the 'enter' action.
+    - If the user's intent is unclear or cannot be fulfilled with the available queries, provide a helpful message explaining the limitation.
+    """
+
+    input_text = f"""
+    System Message: {sys_msg}
+
+    User Intent: {user_intent}
+    Queries: {queries}
+
+    Determine the next action based on the user intent and the available queries. Return the action type (click, scroll, type, enter) and the corresponding 'llm_link_text' value.
+    For example: if the next step is to search for a book, then look for texts that are similar to search and extract the 'llm_link_text' of the search input field.
+    Notice that in the queries, there might be an entry like 'id': 'twotabsearchtextbox', 'type': 'text', 'placeholder': 'Search Amazon.ca', 'llm_link_text': 'ID:twotabsearchtextbox'.
+    In this case, you would return 'twotabsearchtextbox' as the 'llm_link_text' and 'type' as the 'action_type' and 'book' as the data_value.
+    """
+    #input_text = f"User Intent: {user_intent}\nQueries: {queries}\n\nDetermine the next action based on the user intent and the available queries. Return the action type (click, scroll, type, enter) and the corresponding 'llm_link_text' value. For example: if the next steps is to search for a book, then look the texts that ae similar to search and then get extract the llm_link_text of the search , notice that is in here 'id': 'twotabsearchtextbox', 'type': 'text', 'placeholder': 'Search Amazon.ca', 'llm_link_text': 'ID:twotabsearchtextbox' so you would return twotabsearchtextbox as the llm_link_text and type in action_type"
 
     response = generate_text(input_text)
     print(response)
 
     try:
-        json_response = json.loads(response)
-        action_type = json_response.get("action_type")
-        llm_link_text = json_response.get("llm_link_text")
-        print(action_type,llm_link_text)
-        return action_type, llm_link_text
+            json_response = json.loads(response)
+            print(json_response)
+            action_type = json_response.get("action_type")
+            llm_link_text = json_response.get("llm_link_text")
+            result = (action_type, llm_link_text)
+
+            # Check if 'data_value' is present in the response
+            if 'data_value' in json_response:
+                data_value = json_response['data_value']
+                result += (data_value,)
+
+            return result
     except json.JSONDecodeError:
         print("Error: Invalid JSON response from LLM")
         return None, None
+
 
 def main(driver, initial_url, user_intent):
     function.navigate_to_URL(driver, initial_url)
@@ -151,7 +183,10 @@ def main(driver, initial_url, user_intent):
         queries = function.screenshot_with_highlights_and_labels(driver)
         print("Screenshot taken with highlights and labels.")
 
-        action_type, llm_link_text = determine_next_action(queries, user_intent)
+        # The function might return two or three values depending on the presence of 'data_value'
+        action_info = determine_next_action(queries, user_intent)
+        action_type, llm_link_text = action_info[:2]  # Always get these two values
+
         print(action_type)
         print(llm_link_text)
 
@@ -162,8 +197,13 @@ def main(driver, initial_url, user_intent):
             function.scroll_page(driver, 1000)
             print("Scrolled the page")
         elif action_type == "type":
-            function.type_text_with_LLM_link_text(driver, llm_link_text, "book")
-            print(f"Typed 'book' into element: {llm_link_text}")
+            # Check if 'data_value' was returned and use it
+            if len(action_info) == 3:
+                data_value = action_info[2]
+                function.type_text_with_LLM_link_text(driver, llm_link_text, data_value)
+                print(f"Typed '{data_value}' into element: {llm_link_text}")
+            else:
+                print("Data value not provided for typing action.")
         elif action_type == "enter":
             function.press_enter(driver)         
             print("Pressed Enter")
@@ -175,7 +215,9 @@ def main(driver, initial_url, user_intent):
 
 if __name__ == "__main__":
     driver = function.initialize_driver()
-    user_intent = "Search for a book on Amazon"  
+    initial_url = "https://www.amazon.com"
+    user_intent = "Search for a book on Amazon"
+    main(driver, initial_url, user_intent)  
 
     try:
         main(driver, "http://amazon.ca", user_intent)
