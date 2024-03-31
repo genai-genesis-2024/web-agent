@@ -212,7 +212,6 @@ def agent_text_to_speech(text):  # this function will be called at the beginning
     user_intent = delete_last_word(user_intent_unclean)
     return user_intent
 
-
 def failed_announcement():  # call this function whenever the agent wants to announce a failure
     speak_text("Action failed")
 
@@ -269,8 +268,8 @@ def main(driver, initial_url, user_intent):
                 print("Pressed Enter")
             elif action_type == "listen":
                 print("No valid action determined. Waiting for user input.")
-                user_input = start_streaming()
-                print(f"User input: {user_input}")
+                user_intent = agent_text_to_speech("Can you clarify your request by adding more details, and when you finish, say quit")
+                print(f"New User Intent: {user_intent}")
             elif action_type == "stop":
                 print("User's intent fulfilled. Terminating the session.")
                 break
